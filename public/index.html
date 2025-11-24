@@ -4,68 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mines Pro</title>
-    <style>
-        :root {
-            --bg-color: #0f1923; /* Fundo escurão */
-            --sidebar-color: #1a242d;
-            --accent-color: #00e701; /* Verde Aposta */
-            --red-color: #ff4d4d;
-            --tile-color: #2f4553;
-            --tile-hover: #557086;
-        }
-        body { margin: 0; background-color: var(--bg-color); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; overflow: hidden;}
-        
-        /* Layout */
-        .sidebar { width: 300px; background-color: var(--sidebar-color); padding: 20px; display: flex; flex-direction: column; gap: 15px; border-right: 1px solid #333; }
-        .game-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        
-        /* Inputs */
-        label { font-size: 12px; color: #b1bad3; font-weight: bold; }
-        input, select { background: #0f1923; border: 1px solid #2f4553; color: white; padding: 10px; border-radius: 5px; width: 100%; box-sizing: border-box; font-weight: bold; margin-bottom: 5px;}
-        input:focus { outline: 1px solid var(--accent-color); }
-
-        /* Botão Principal */
-        #action-btn { background-color: var(--accent-color); color: #000; font-weight: 800; border: none; padding: 15px; border-radius: 5px; cursor: pointer; transition: 0.2s; width: 100%; font-size: 16px; margin-top: 10px; }
-        #action-btn:hover { filter: brightness(1.1); }
-        #action-btn:disabled { background-color: #555; cursor: not-allowed; }
-        .cashout-mode { background-color: #ffae00 !important; color: black !important; }
-
-        /* Grid do Jogo */
-        .grid-container { background: #0f1923; padding: 20px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .grid { display: grid; grid-template-columns: repeat(5, 70px); gap: 10px; }
-        .cell { width: 70px; height: 70px; background-color: var(--tile-color); border-radius: 8px; border: none; cursor: pointer; font-size: 32px; transition: transform 0.1s; box-shadow: 0 4px 0 #1e2c36; }
-        .cell:active { transform: translateY(2px); box-shadow: 0 1px 0 #1e2c36; }
-        .cell:hover { background-color: var(--tile-hover); }
-        .cell.revealed { background-color: #071016; box-shadow: none; cursor: default; }
-        .cell.safe { background-color: #0f1923; border: 2px solid #ed8a19; color: #ed8a19; } /* Estilo Diamante */
-        .cell.boom { background-color: var(--red-color); }
-
-        /* Info Header */
-        .balance-display { position: absolute; top: 20px; right: 20px; background: #1a242d; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .wallet-icon { color: var(--accent-color); }
-
-        /* Stats no meio do jogo */
-        .game-stats { margin-top: 20px; text-align: center; height: 20px; color: #b1bad3; }
-        .win-display { color: #00e701; font-weight: bold; font-size: 1.2em; display: none; }
-
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
     <div class="sidebar">
-        <h2 style="color: white; margin-top: 0;">💎 Mines</h2>
+        <div class="logo-area">💎 Mines Pro</div>
         
-        <div>
+        <div class="control-group">
             <label>VALOR DA APOSTA</label>
-            <div style="display: flex; gap: 5px;">
+            <div class="input-row">
                 <input type="number" id="betAmount" value="10.00" step="0.50">
-                <button onclick="halfBet()" style="width: 40px; background: #2f4553; color: white; border: none; border-radius: 5px; cursor: pointer;">½</button>
-                <button onclick="doubleBet()" style="width: 40px; background: #2f4553; color: white; border: none; border-radius: 5px; cursor: pointer;">2x</button>
+                <button onclick="adjustBet(0.5)">½</button>
+                <button onclick="adjustBet(2)">2x</button>
             </div>
         </div>
 
-        <div>
-            <label>NÚMERO DE MINAS</label>
+        <div class="control-group">
+            <label>MINAS</label>
             <select id="minesCount">
                 <option value="1">1 Mina</option>
                 <option value="3" selected>3 Minas</option>
@@ -75,171 +31,27 @@
             </select>
         </div>
 
-        <button id="action-btn" onclick="handleAction()">COMEÇAR O JOGO</button>
+        <button id="action-btn">COMEÇAR O JOGO</button>
         
-        <div style="margin-top: auto; font-size: 12px; color: #555;">
-            Provably Fair System (Demo)
-        </div>
+        <div class="footer-info">Provably Fair System</div>
     </div>
 
     <div class="game-area">
-        
         <div class="balance-display">
-            <span class="wallet-icon">R$</span>
-            <span id="balance">Carregando...</span>
+            <span class="symbol">R$</span>
+            <span id="balance">0.00</span>
         </div>
 
-        <div class="grid-container">
+        <div class="grid-container" id="grid-container">
             <div class="grid" id="grid"></div>
         </div>
 
-        <div class="game-stats">
-            <span id="multiplier-display">Multiplicador Atual: 1.00x</span>
-            <div id="win-feedback" class="win-display">LUCRO: R$ 0.00</div>
+        <div class="stats-bar">
+            <div id="multiplier-display">1.00x</div>
+            <div id="message-display">Faça sua aposta</div>
         </div>
-
     </div>
 
-    <script>
-        // Gera um ID aleatório para simular login
-        let userId = localStorage.getItem('userId');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('userId', userId);
-        }
-
-        let isPlaying = false;
-        const gridEl = document.getElementById('grid');
-        const btn = document.getElementById('action-btn');
-        const balanceEl = document.getElementById('balance');
-        const multiplierEl = document.getElementById('multiplier-display');
-        const winFeedback = document.getElementById('win-feedback');
-
-        // Inicializa
-        renderEmptyGrid();
-        updateBalance();
-
-        function renderEmptyGrid() {
-            gridEl.innerHTML = '';
-            for (let i = 0; i < 25; i++) {
-                const cell = document.createElement('button');
-                cell.className = 'cell';
-                if(isPlaying) cell.onclick = () => clickCell(i, cell);
-                else cell.disabled = true;
-                gridEl.appendChild(cell);
-            }
-        }
-
-        async function updateBalance() {
-            const res = await fetch(`/api/me/${userId}`);
-            const data = await res.json();
-            balanceEl.innerText = parseFloat(data.balance).toFixed(2);
-        }
-
-        async function handleAction() {
-            if (!isPlaying) {
-                // COMEÇAR JOGO
-                const bet = document.getElementById('betAmount').value;
-                const mines = document.getElementById('minesCount').value;
-
-                const res = await fetch('/api/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, betAmount: bet, minesCount: mines })
-                });
-
-                const data = await res.json();
-                
-                if (res.status !== 200) {
-                    alert(data.error);
-                    return;
-                }
-
-                isPlaying = true;
-                btn.innerText = "RETIRAR (Cashout)";
-                btn.classList.add('cashout-mode');
-                winFeedback.style.display = 'none';
-                
-                updateBalance(); // Atualiza saldo (descontou a aposta)
-                renderEmptyGrid(); // Libera os botões
-
-            } else {
-                // CASHOUT
-                const res = await fetch('/api/cashout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-                const data = await res.json();
-                
-                revealAll(data.grid);
-                endGame(true, data.winAmount);
-                updateBalance();
-            }
-        }
-
-        async function clickCell(index, cellBtn) {
-            if (!isPlaying) return;
-
-            const res = await fetch('/api/play', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, index })
-            });
-
-            const data = await res.json();
-
-            if (data.status === 'safe') {
-                cellBtn.classList.add('revealed', 'safe');
-                cellBtn.innerHTML = '💎';
-                cellBtn.disabled = true;
-                
-                multiplierEl.innerText = `Multiplicador: ${data.multiplier}x`;
-                btn.innerText = `RETIRAR R$ ${data.potentialWin}`;
-                
-            } else if (data.status === 'boom') {
-                cellBtn.classList.add('boom');
-                cellBtn.innerHTML = '💣';
-                revealAll(data.grid);
-                endGame(false);
-            }
-        }
-
-        function revealAll(fullGrid) {
-            const cells = document.querySelectorAll('.cell');
-            fullGrid.forEach((type, idx) => {
-                const cell = cells[idx];
-                cell.disabled = true;
-                cell.classList.add('revealed');
-                if (type === 'mine') {
-                    cell.innerHTML = '💣';
-                    if (!cell.classList.contains('boom')) cell.style.opacity = '0.5'; // Minas que não clicamos
-                } else {
-                    cell.innerHTML = '💎';
-                    cell.style.opacity = '0.3'; // Diamantes que perdemos
-                }
-            });
-        }
-
-        function endGame(win, amount = 0) {
-            isPlaying = false;
-            btn.classList.remove('cashout-mode');
-            btn.innerText = "COMEÇAR O JOGO";
-            
-            if (win) {
-                winFeedback.style.display = 'block';
-                winFeedback.innerText = `VOCÊ GANHOU R$ ${amount}!`;
-                winFeedback.style.color = '#00e701';
-            } else {
-                winFeedback.style.display = 'block';
-                winFeedback.innerText = `VOCÊ PERDEU!`;
-                winFeedback.style.color = 'red';
-            }
-        }
-
-        // Funções auxiliares
-        function doubleBet() { document.getElementById('betAmount').value *= 2; }
-        function halfBet() { document.getElementById('betAmount').value /= 2; }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
