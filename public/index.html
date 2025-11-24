@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mines Clone</title>
+    <style>
+        body { background-color: #1a2c38; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        .grid { display: grid; grid-template-columns: repeat(5, 60px); gap: 10px; margin-top: 20px; }
+        .cell { width: 60px; height: 60px; background-color: #2f4553; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; }
+        .cell:hover { background-color: #557086; }
+        .safe { background-color: #00e701; color: black; } /* Verde para acerto */
+        .boom { background-color: #ff4d4d; } /* Vermelho para erro */
+        button.action { padding: 10px 20px; background: #00e701; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <h1>Mines Demo</h1>
+    <h3>Multiplicador: <span id="mult">1.00</span>x</h3>
+    <button class="action" onclick="startGame()">Começar Jogo (3 Minas)</button>
+
+    <div class="grid" id="grid">
+        </div>
+
+    <script>
+        const gridEl = document.getElementById('grid');
+        const multEl = document.getElementById('mult');
+
+        // Gera o grid visualmente
+        function renderGrid() {
+            gridEl.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'cell';
+                btn.onclick = () => playRound(i, btn);
+                gridEl.appendChild(btn);
+            }
+        }
+
+        async function startGame() {
+            renderGrid();
+            multEl.innerText = "1.00";
+            await fetch('/api/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mines: 3 })
+            });
+        }
+
+        async function playRound(index, btn) {
+            const res = await fetch('/api/play', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index })
+            });
+            const data = await res.json();
+
+            if (data.status === 'safe') {
+                btn.classList.add('safe');
+                btn.innerText = '💎';
+                multEl.innerText = data.multiplier;
+                btn.disabled = true; // Não pode clicar de novo
+            } else if (data.status === 'boom') {
+                btn.classList.add('boom');
+                btn.innerText = '💣';
+                alert('BOOM! Você perdeu.');
+                startGame(); // Reseta
+            }
+        }
+
+        renderGrid(); // Renderiza ao abrir
+    </script>
+</body>
+</html>
